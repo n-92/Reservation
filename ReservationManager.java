@@ -1,25 +1,56 @@
-package reservation;
+package rrpss;
 
+/**
+ * 
+ * @author  Aung Naing Oo
+ * @version 5.0
+ * @since   2014-11-20
+ * 
+ */
+
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.GregorianCalendar;
+import java.util.Calendar;
 import java.util.Scanner;
 
 public class ReservationManager {
+/*	
+*This class takes care of all the activities related to the Reservation system 
+*It also controls the timing 
+*/
+	private ArrayList<Reservation> reservationArray = new ArrayList<Reservation>(); 
 	
-	static final int constantNumberOfSeats = 2;
-	static int NoOfSeatsAvaiable = 2;
-	ArrayList<Reservation> reservationArray = new ArrayList<Reservation>(); 
+	private TableManager tablemanager;
 	Scanner scan = new Scanner(System.in);
 	
+	public ReservationManager(TableManager tablemanager){
+		this.tablemanager = tablemanager;
+	}
+	
+	
+	
+	public void checkReservation(){
+		Calendar cal = Calendar.getInstance();
+		for(int r=0;r<reservationArray.size();r++){
+			if(reservationArray.get(r).getReservationDateAndTime().getTimeInMillis()<cal.getTimeInMillis()){
+				tablemanager.unreserveTable(reservationArray.get(r).getTableId()-1);
+				reservationArray.remove(r);
+				System.out.println("Reservation Removed");
+			}
+		}
+	}
+	
+	
 	public boolean makeReservation (){
+		Reservation reservation;
 		String n; long c ; int p;
-		
-		scan.nextLine();
-		if (NoOfSeatsAvaiable > 0){
+		Table table;
+		if (tablemanager.getAvailable() > 0){
 		
 		System.out.print("Enter the name of the customer: ");
-		
-		n = scan.nextLine();
+		n = scan.next();
+		scan.nextLine();
 		if (n == null){
 			System.out.println("Name cannot be empty");
 			return false;
@@ -37,32 +68,32 @@ public class ReservationManager {
 		System.out.print("Enter the number of people: ");
 		p = scan.nextInt();
 		
-		if (!(p> 0) || !(p%2==0) || !(p < 11)){
-			System.out.println("System only allows even number of people Minimum 2 and Maximum 10");
+		table=tablemanager.chooseTable(p);
+		if (table==null){
 			return false;
 		}
-		
-			GregorianCalendar reserve = setReservationDate();
-			GregorianCalendar now = (GregorianCalendar) GregorianCalendar.getInstance();
-			reservationArray.add(new Reservation(n, c, p, 
-					(constantNumberOfSeats-NoOfSeatsAvaiable+1) % constantNumberOfSeats, now, reserve));
-			NoOfSeatsAvaiable--;
+		    
+			Calendar reserve = setReservationDate();
+			Calendar now = Calendar.getInstance();
+			reservation = new Reservation(n, c, p, 
+					table.getTableNumber(), now, reserve);
+			tablemanager.reserveTable(table.getTableNumber()-1);
+			reservationArray.add(reservation);
 			return true;
 		}
-		else{
-			System.out.println("No more seats available ! Sorry");
-			return false;
-		}
+		System.out.println("Sorry, there is no more table left.");
+		return false;
 	}
-	
 	public boolean removeReservation(){
 		String name;
-		System.out.println("Enter the name: ");
-		name = scan.nextLine();
+		System.out.println("Enter the name:");
+		name = scan.next();
+		scan.nextLine();
 		for (Reservation r: reservationArray){
 			if (r.getName().equals(name)){
+				tablemanager.unreserveTable((r.getTableId())-1);
 				reservationArray.remove(r);
-				NoOfSeatsAvaiable++;
+				System.out.println("Reservation Removed");
 				return true;
 			}
 		}
@@ -71,7 +102,13 @@ public class ReservationManager {
 		
 	}
 	
-	public GregorianCalendar setReservationDate(){
+	public void removeReservationByObject(Reservation reservation){
+		reservationArray.remove(reservation);
+		tablemanager.unreserveTable((reservation.getTableId())-1);
+		System.out.println("Reservation Removed");
+	}
+	
+	public Calendar setReservationDate(){
 		/*The drawback of this technique is that let's say the reservation is supposed to be 
 		 * made 30 minutes earlier from the current minute.  So when the program asks you to 
 		 * key in the minute and you leave the computer at that state for 30 minutes and come 
@@ -82,39 +119,44 @@ public class ReservationManager {
 		 * Aung Naing Oo */
 		
 		
-		int currentMonth = GregorianCalendar.getInstance().get(GregorianCalendar.MONTH)+1; //Month starts from zero in Java
-		int currentYear = GregorianCalendar.getInstance().get(GregorianCalendar.YEAR);
-		int currentDate = GregorianCalendar.getInstance().get(GregorianCalendar.DATE);
-		int currentHour = GregorianCalendar.getInstance().get(GregorianCalendar.HOUR_OF_DAY);
-		int currentMinute = GregorianCalendar.getInstance().get(GregorianCalendar.MINUTE);
+		int currentMonth = Calendar.getInstance().get(Calendar.MONTH)+1; //Month starts from zero in Java
+		int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+		int currentDate = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
+		int currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+		int currentMinute = Calendar.getInstance().get(Calendar.MINUTE);
 		
-		System.out.println("Today's date "+ currentDate );
-		System.out.println("Current Month "+ currentMonth );
+		
 		System.out.println("Current Year "+ currentYear );
+		System.out.println("Current Month "+ currentMonth );
+		System.out.println("Today's date "+ currentDate );
 		System.out.println("Current Hour "+ currentHour );
-		System.out.println("Current Year "+ currentMinute );
+		System.out.println("Current Minute "+ currentMinute );
 		System.out.println("\t---\t---\t---\t---\t---");
 		int inputMonth, inputYear, inputDate, inputHour, inputMinute;
 		
-		GregorianCalendar reserveDate = (GregorianCalendar) GregorianCalendar.getInstance();
+		Calendar reserveDate = Calendar.getInstance();
 		
 		System.out.print("Enter the year: ");
 		inputYear = scan.nextInt();
+		scan.nextLine();
 		
 		while( inputYear < currentYear){
 			System.out.println("Old year entry is not allowed !\n");
 			System.out.print("Enter the year: ");
 			inputYear = scan.nextInt();
+			scan.nextLine();
 		}	
-		reserveDate.set(GregorianCalendar.YEAR,inputYear); 
+		reserveDate.set(Calendar.YEAR,inputYear); 
 	
 		System.out.print("Enter the month: ");
 		inputMonth = scan.nextInt();	
+		scan.nextLine();
 		
 		while (inputMonth < 1 || inputMonth > 12){
 			System.out.println("Invalid Month entry!");
 			System.out.print("Enter the month again: ");
 			inputMonth = scan.nextInt();
+			scan.nextLine();
 		}
 		
 		while((inputMonth < currentMonth) && (inputYear == currentYear)){
@@ -122,36 +164,42 @@ public class ReservationManager {
 			System.out.println("Old month entry is not allowed !\n");
 			System.out.print("Enter the month: ");
 			inputMonth = scan.nextInt();
+			scan.nextLine();
 			
 		}
-		reserveDate.set(GregorianCalendar.MONTH,inputMonth);
+		reserveDate.set(Calendar.MONTH,inputMonth-1);//MONTH is from 0 to 11.
 		
 		System.out.print("Enter the date for reservation: ");
 		inputDate = scan.nextInt();
+		scan.nextLine();
 		
 		while( inputDate < 1 || inputDate > 31){
 			System.out.println("Invalid date entry!");
 			System.out.print("Enter the date again: ");
 			inputDate = scan.nextInt();
+			scan.nextLine();
 		}
 		
-		while((inputDate < currentDate) && (inputMonth == currentMonth)){
+		while((inputDate < currentDate) && (inputMonth == currentMonth)&&(inputYear==currentYear)){
 			System.out.println("Past Day is not allowed!\n");
 			System.out.print("Enter the date for reservation: ");
 			inputDate = scan.nextInt();
+			scan.nextLine();
 		}
-		reserveDate.set(GregorianCalendar.DATE,inputDate);
+		reserveDate.set(Calendar.DAY_OF_MONTH,inputDate);
 		
 		System.out.print("Enter hour (24-hr format): ");
 		inputHour = scan.nextInt();
+		scan.nextLine();
 		
 		while( inputHour < 0 || inputHour > 23){
 			System.out.println("Invalid hour entry!");
 			System.out.print("Enter the hour again: ");
 			inputHour = scan.nextInt();
+			scan.nextLine();
 		}
 		
-		while(inputHour < currentHour && inputDate == currentDate){
+		while(inputHour < currentHour && inputDate == currentDate&&inputMonth == currentMonth&&inputYear==currentYear){
 			
 			if (inputHour < 0 && inputHour > 23){
 				System.out.println("Invalid Hour entry");
@@ -160,27 +208,32 @@ public class ReservationManager {
 				System.out.println("Past hour is not allowed!\n");
 				System.out.print("Enter hour (24-hr format): ");
 				inputHour = scan.nextInt();
+				scan.nextLine();
 			}
 		}
-		reserveDate.set(GregorianCalendar.HOUR_OF_DAY,inputHour); //This uses 24 hour clock
+		reserveDate.set(Calendar.HOUR_OF_DAY,inputHour); //This uses 24 hour clock
 		
 		System.out.print("Enter minute: ");
 		inputMinute = scan.nextInt();
+		scan.nextLine();
 		
 		while(inputMinute < 0 || inputMinute > 59){
 			System.out.println("Invalid Minute entry");
 			System.out.print("Enter minute again: ");
 			inputMinute = scan.nextInt();
+			scan.nextLine();
 		}
 		
-		while((inputMinute-currentMinute) < 30 && inputHour == currentHour){
+		while((inputMinute-currentMinute) <= 0 && inputHour == currentHour){
 			
-			System.out.println("Reservation can only be made 30 minutes earlier or invalid input !");
-			System.out.print("Enter minute: ");
+			//System.out.println("Reservation can only be made 30 minutes earlier or invalid input !");
+			System.out.print("Invalid minute");
+			System.out.print("Enter minute again: ");
 			inputMinute = scan.nextInt();	
+			scan.nextLine();
 		}
 		
-		reserveDate.set(GregorianCalendar.MINUTE,inputMinute);		
+		reserveDate.set(Calendar.MINUTE,inputMinute);
 		System.out.println("Date Reserved!");
 		return reserveDate;
 	}
@@ -189,7 +242,7 @@ public class ReservationManager {
 	
 	for (Reservation r: reservationArray){
 		if (r.getName().equals(name)){
-			System.out.println("\t\t==\t\t==\t\t==\n\n");
+			System.out.println("=======================\n\n");
 			System.out.print("Date and time of Booking : "); 
 			formattedDate(r.getBookingDateAndTime());
 			
@@ -208,7 +261,11 @@ public class ReservationManager {
 	public void printAllReservation(){
 		
 		for (Reservation r: reservationArray){
-			System.out.println("\t\t==\t\t==\t\t==\n\n");
+			if(r==null){
+		      System.out.println("No reservation");
+		      return;
+			}
+			System.out.println("=======================\n\n");
 			System.out.print("Date and time of Booking : "); 
 			formattedDate(r.getBookingDateAndTime());
 			
@@ -221,19 +278,36 @@ public class ReservationManager {
 			System.out.println("Contact Number = " + r.getContact());
 		}
 		
-		System.out.println("\n\nNumber of seats left : " + NoOfSeatsAvaiable);
+		System.out.println("\n\nNumber of tables left : " + tablemanager.getAvailable());
+	}
+	
+	public void writeReservation() throws IOException{
+		FileWriter fw = new FileWriter("ReservationList.txt");
+		for(Reservation r:reservationArray){
+        fw.write("Name: "+r.getName()+"\r\n");
+        fw.write("Number of People: "+r.getPax()+"\r\n");
+        fw.write("TableID: "+r.getTableId()+"\r\n");
+        fw.write("ContactNumber: "+r.getContact()+"\r\n");
+        fw.write("ReservationDate: "+r.getReservationDateAndTime().get(Calendar.DAY_OF_MONTH)+"/"+r.getReservationDateAndTime().get(Calendar.MONTH)
+				+"/"+r.getReservationDateAndTime().get(Calendar.YEAR)+"  Time: "+r.getReservationDateAndTime().get(Calendar.HOUR_OF_DAY)+":"
+				+r.getReservationDateAndTime().get(Calendar.MINUTE)+"\r\n\r\n");
+		
+			
+	}
+		fw.close();
+
 	}
 	
 	//TODO Expiry checking part
 	private void checkReservationValidityAndRemove(){
 		
 		for (Reservation r: reservationArray){
-			if (r.getBookingDateAndTime().get(GregorianCalendar.DATE)==GregorianCalendar.getInstance().get(GregorianCalendar.DATE)){
-				if (r.getBookingDateAndTime().get(GregorianCalendar.MONTH)==GregorianCalendar.getInstance().get(GregorianCalendar.MONTH)){
-					if (r.getBookingDateAndTime().get(GregorianCalendar.HOUR_OF_DAY)==GregorianCalendar.getInstance().get(GregorianCalendar.HOUR_OF_DAY)){
-						if (r.getBookingDateAndTime().get(GregorianCalendar.MINUTE) > 30 + r.getBookingDateAndTime().get(GregorianCalendar.MINUTE) ){
+			if (r.getBookingDateAndTime().get(Calendar.DAY_OF_MONTH)==Calendar.getInstance().get(Calendar.DAY_OF_MONTH)){
+				if (r.getBookingDateAndTime().get(Calendar.MONTH)==Calendar.getInstance().get(Calendar.MONTH)){
+					if (r.getBookingDateAndTime().get(Calendar.HOUR_OF_DAY)==Calendar.getInstance().get(Calendar.HOUR_OF_DAY)){
+						if (r.getBookingDateAndTime().get(Calendar.MINUTE) > 30 + r.getBookingDateAndTime().get(Calendar.MINUTE) ){
 							reservationArray.remove(r);
-							NoOfSeatsAvaiable++;
+							tablemanager.increaseAvailable();;
 						}
 					}
 				}
@@ -241,11 +315,11 @@ public class ReservationManager {
 		}
 	}
 	
-	private void formattedDate(GregorianCalendar l){
+	private void formattedDate(Calendar l){
 		
-		System.out.print(l.get(GregorianCalendar.DATE)+"/"+l.get(GregorianCalendar.MONTH)
-				+"/"+l.get(GregorianCalendar.YEAR)+"  Time: "+l.get(GregorianCalendar.HOUR_OF_DAY)+":"
-				+l.get(GregorianCalendar.MINUTE)+"\n");
+		System.out.print(l.get(Calendar.DAY_OF_MONTH)+"/"+l.get(Calendar.MONTH)
+				+"/"+l.get(Calendar.YEAR)+"  Time: "+l.get(Calendar.HOUR_OF_DAY)+":"
+				+l.get(Calendar.MINUTE)+"\n");
 	}
 	
 	
