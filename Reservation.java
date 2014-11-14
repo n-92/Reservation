@@ -1,23 +1,23 @@
-package reservation;
+package rrpss;
 
-import java.util.GregorianCalendar;
+import java.util.Calendar;
 
 public class Reservation {
 	
-	GregorianCalendar currentDateAndTime, reservationDateAndTime ;
+	Calendar currentDateAndTime, reservationDateAndTime ;
 	private String name;
 	private long  contact;
 	private int pax;
-	private int seatID;
+	private int tableID;
 	
 	
-	public Reservation(String n, long c, int p, int seatId, GregorianCalendar now, GregorianCalendar reserve ){
+	public Reservation(String n, long c, int p, int tableId, Calendar now, Calendar reserve ){
 		name = n;
 		contact = c;
 		pax = p;
 		currentDateAndTime = now;
 		reservationDateAndTime = reserve;
-		seatID = seatId;
+		tableID = tableId;
 	}
 	
 	public String getName (){
@@ -32,16 +32,17 @@ public class Reservation {
 		return pax;
 	}
 	
-	public GregorianCalendar getBookingDateAndTime(){
+	public Calendar getBookingDateAndTime(){
 		return currentDateAndTime;
 	}
 
-	public GregorianCalendar getReservationDateAndTime(){
+	public Calendar getReservationDateAndTime(){
 		return reservationDateAndTime;
 	}
 	
+	
 	public int getTableId(){
-		return seatID;
+		return tableID;
 	}
 	
 }
